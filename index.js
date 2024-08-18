@@ -71,20 +71,22 @@ async function run() {
         });
 
 
-
-
-
-        app.put("/bookings/:id", async(req, res)=>{
+        app.patch("/bookings/:id", async (req, res) => {
             const updatedBooking = req.body;
             const id = req.params.id;
-            const query = {_id: new ObjectId(id)};
-            const result = await bookingCollection.updateOne(query);
+            const query = { _id: new ObjectId(id) };
+            const updateDoc = {
+                $set: {
+                    status: updatedBooking.status
+                },
+            };
+            const result = await bookingCollection.updateOne(query, updateDoc);
             res.send(result);
         });
 
-        app.delete("/bookings/:id", async(req, res)=>{
+        app.delete("/bookings/:id", async (req, res) => {
             const id = req.params.id;
-            const query = {_id: new ObjectId(id)};
+            const query = { _id: new ObjectId(id) };
             const result = await bookingCollection.deleteOne(query);
             res.send(result);
         });
