@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
 const app = express();
@@ -31,6 +32,16 @@ async function run() {
         const serviceCollection = client.db("revmaxGarage").collection("services");
         const bookingCollection = client.db("revmaxGarage").collection("bookings");
 
+        /* Auth related API */
+        app.post("/jwt", async (req, res) => {
+            const user = req.body;
+            console.log(user);
+            const token = jwt.sign(user, 'secret', {expiresIn: '1h'});
+            res.send(token);
+        });
+
+
+        /* Services related API */
         /* Get Services data */
         app.get('/services', async (req, res) => {
             const cursor = serviceCollection.find();
@@ -54,7 +65,7 @@ async function run() {
 
         /* For Bookings */
         app.get("/bookings", async (req, res) => {
-            console.log(req.query.email);
+            // console.log(req.query.email);
             let query = {};
             /* filter by email */
             if (req.query?.email) {
