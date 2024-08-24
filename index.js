@@ -9,31 +9,18 @@ const port = process.env.PORT || 5000;
 
 /* Using middleware */
 app.use(cors({
-    origin: ['http://localhost:5173'],
+    origin: [
+        // 'http://localhost:5173',
+        'https://revmax-garage.web.app',
+        'https://revmax-garage.firebaseapp.com'
+    ],
     credentials: true
 }));
 app.use(express.json());
 app.use(cookieParser());
 
-// Using Personal Middleware 
-const verifyToken = async (req, res, next) => {
-    const token = req.cookies?.token;
 
-    if (!token) {
-        return res.status(401).send({ message: "Not authorized" });
-    }
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
 
-        // if error
-        if (err) {
-            return res.status(401).send({ message: 'Unauthorized...' })
-        }
-
-        // if token is valid, it would be decoded
-        req.user = decoded;
-        next();
-    });
-}
 
 
 /* mongodb connection start */
@@ -48,6 +35,31 @@ const client = new MongoClient(uri, {
         deprecationErrors: true,
     }
 });
+
+
+
+// Using Personal Middleware to verify token
+const verifyToken = async (req, res, next) => {
+
+    const token = req.cookies?.token;
+
+    if (!token) {
+        return res.status(401).send({ message: "Unauthorized access" });
+    }
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+
+        // if error
+        if (err) {
+            return res.status(401).send({ message: 'Unauthorized...' })
+        }
+
+        // if token is valid, it would be decoded | set value
+        req.user = decoded;
+        next();
+    });
+}
+
+
 
 async function run() {
     try {
@@ -66,10 +78,18 @@ async function run() {
             res
                 .cookie('token', token, {
                     httpOnly: true,
-                    secure: false,
+                    secure: true,
+                    sameSite: 'none'
                 })
                 .send({ success: true });
         });
+
+        // after logout cookies will be clear 
+        app.post("/logout", async (req, res) => {
+            const user = req.body;
+            console.log('Logging Out', user);
+            res.clearCookie('token',{ maxAge: 0 }).send({ success: true });
+        })
 
 
         /* Services related API */
@@ -98,11 +118,13 @@ async function run() {
         app.get("/bookings", verifyToken, async (req, res) => {
             // console.log('Here is the token', req.cookies.token);
 
-            if(req.query.email !== req.user.email){
-                return res.status(403).send({message: 'User is forbidden'});
+            if (req.user.email !== req.query.email) {
+                return res.status(403).send({ message: 'User is forbidden' });
             }
-            console.log('User in the valid token', req.user);
-            console.log(req.query.email);
+            // console.log('User in the valid token', req.user);
+            // console.log('here',req.query);
+            // console.log('Cookies', req.cookies);
+
             let query = {};
             /* filter by email */
             if (req.query?.email) {
